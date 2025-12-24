@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Test Vercel Blob API</title>
+    <style>
+        body { font-family: Arial; padding: 20px; max-width: 800px; margin: 0 auto; }
+        button { padding: 10px 20px; margin: 10px 0; cursor: pointer; }
+        .result { background: #f5f5f5; padding: 15px; margin: 10px 0; border-radius: 5px; }
+        .success { border-left: 4px solid #22c55e; }
+        .error { border-left: 4px solid #ef4444; }
+        pre { white-space: pre-wrap; word-wrap: break-word; }
+    </style>
+</head>
+<body>
+    <h1>🧪 Test Vercel Blob API</h1>
+    
+    <h2>1. Test POST (Tạo câu hỏi mới)</h2>
+    <button onclick="testPost()">Gửi câu hỏi test</button>
+    <div id="postResult"></div>
+    
+    <h2>2. Test GET (Lấy tất cả câu hỏi)</h2>
+    <button onclick="testGet()">Lấy danh sách câu hỏi</button>
+    <div id="getResult"></div>
+    
+    <h2>3. Test POST Duplicate (Test kiểm tra trùng)</h2>
+    <button onclick="testDuplicate()">Gửi lại câu hỏi giống</button>
+    <div id="duplicateResult"></div>
+    
+    <script>
+        const API_URL = window.location.origin + '/api/questions';
+        
+        function showResult(elementId, data, isSuccess) {
+            const el = document.getElementById(elementId);
+            el.className = `result ${isSuccess ? 'success' : 'error'}`;
+            el.innerHTML = `
+                <h3>${isSuccess ? '✅ Success' : '❌ Error'}</h3>
+                <pre>${JSON.stringify(data, null, 2)}</pre>
+            `;
+        }
+        
+        async function testPost() {
+            const resultEl = document.getElementById('postResult');
+            resultEl.innerHTML = '⏳ Đang gửi...';
+            
+            try {
+                const testQuestion = {
+                    question: `Test câu hỏi lúc ${new Date().toLocaleTimeString()}`,
+                    options: ["Đáp án A", "Đáp án B", "Đáp án C", "Đáp án D"],
+                    correctAnswer: 0,
+                    subject: "Test Subject",
+                    difficulty: "easy",
+                    tags: ["test"]
+                };
+                
+                console.log('📤 Sending:', testQuestion);
+                
+                const response = await fetch(API_URL, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(testQuestion)
+                });
+                
+                const result = await response.json();
+                console.log('📥 Response:', result);
+                
+                showResult('postResult', result, response.ok);
+                
+                // Lưu ID để test duplicate
+                if (result.success && result.data && result.data.id) {
+                    window.lastQuestionId = result.data.id;
+                    window.lastQuestion = testQuestion;
+                }
+                
+            } catch (error) {
+                console.error('❌ Error:', error);
+                showResult('postResult', { error: error.message }, false);
+            }
+        }
+        
+        async function testGet() {
+            const resultEl = document.getElementById('getResult');
+            resultEl.innerHTML = '⏳ Đang tải...';
+            
+            try {
+                const response = await fetch(API_URL);
+                const result = await response.json();
+                
+                console.log('📥 All questions:', result);
+                showResult('getResult', result, response.ok);
+                
+            } catch (error) {
+                console.error('❌ Error:', error);
+                showResult('getResult', { error: error.message }, false);
+            }
+        }
+        
+        async function testDuplicate() {
+            const resultEl = document.getElementById('duplicateResult');
+            
+            if (!window.lastQuestion) {
+                resultEl.innerHTML = '⚠️ Vui lòng test POST trước!';
+                return;
+            }
+            
+            resultEl.innerHTML = '⏳ Đang gửi câu hỏi giống...';
+            
+            try {
+                const response = await fetch(API_URL, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(window.lastQuestion)
+                });
+                
+                const result = await response.json();
+                console.log('📥 Duplicate test:', result);
+                
+                showResult('duplicateResult', result, response.ok);
+                
+            } catch (error) {
+                console.error('❌ Error:', error);
+                showResult('duplicateResult', { error: error.message }, false);
+            }
+        }
+        
+        // Auto test on load
+        console.log('🚀 Test API URL:', API_URL);
+    </script>
+</body>
+</html>
+
